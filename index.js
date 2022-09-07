@@ -1,59 +1,82 @@
+// Dependencies
+
 const fs = require("fs");
 const http = require("http");
-const { json } = require("stream/consumers");
 const url = require("url");
-/*
-const fs = require("fs");
 
-// Blocking synchronous way
-const textIn = fs.readFileSync("./txt/input.txt", "utf-8");
-console.log(textIn);
-const textOut = `This is what we khow about Avocado: ${textIn}`;
-fs.writeFileSync("./txt/output.txt", textOut);
-console.log("New file added");
+/////////////////////////////////////////
+/* *************
+Application logics
+************** */
+////////////////////////////////////////
 
-const str = fs.readFileSync("./txt/start.txt", "utf-8");
-console.log(str);
+const replaceTemplate = (temp, product) => {
+  let output = temp.replace(/{%IMAGE%}/g, product.image);
+  output = output.replace(/{%PRODUCTNAME%}/g, product.productName);
+  output = output.replace(/{%QUANTITY%}/g, product.quantity);
+  output = output.replace(/{%PRICE%}/g, product.price);
+  output = output.replace(/{%ID%}/g, product.id);
 
-const importantTxt = fs.readFileSync("../Important-links.txt", "utf-8");
-console.log(importantTxt);
+  if (!product.organic) {
+    output = output.replace(/{%NOT_ORGANIC%}/g, "not-organic");
+  }
 
-const textOut2 = `Now im learning node.js.\n${Date.now()}`;
-fs.writeFileSync("../Important-links.txt", textOut2);
+  return output;
+};
 
-// Non-blocking asynchronous way
-
-fs.readFile("./txt/start.txt", "utf-8", (err, data1) => {
-  if (err) return console.log("Error");
-
-  fs.readFile(`./txt/${data1}.txt`, "utf-8", (err, data2) => {
-    fs.readFile("./txt/append.txt", "utf-8", (err, data3) => {
-      const str = `${data2}\n${data3}`;
-      fs.writeFile("./txt/final.txt", str, (err) => {
-        console.log("The file has been wirtten!");
-      });
-    });
-  });
-});
-
-console.log("Data is reading in the background");
-
-*/
-
+/////////////////////////////////////////
+/* *************
+Reading data from the file system
+************** */
+////////////////////////////////////////
 const data = fs.readFileSync(`${__dirname}/dev-data/data.json`, "utf-8");
+const tempOverview = fs.readFileSync(
+  `${__dirname}/templates/template-overview.html`,
+  "utf-8"
+);
+const tempCard = fs.readFileSync(
+  `${__dirname}/templates/template-card.html`,
+  "utf-8"
+);
+const tempProduct = fs.readFileSync(
+  `${__dirname}/templates/template-product.html`,
+  "utf-8"
+);
 const dataObj = JSON.parse(data);
 
-// console.log(http);
+/////////////////////////////////////////
+/* *************
+Server
+************** */
+////////////////////////////////////////
+
 const server = http.createServer((req, res) => {
   const pathName = req.url;
-  console.log(pathName);
+  // console.log(pathName);
+
+  // Overview page
   if (pathName === "/" || pathName === "/overview") {
-    res.end("This is the overview");
-  } else if (pathName === "/products") {
-    res.end("This is your product.");
+    res.writeHead(200, { "Content-type": "text/html" });
+
+    const cardsHtml = dataObj
+      .map((el) => replaceTemplate(tempCard, el))
+      .join("");
+    const output = tempOverview.replace("{%PRODUCT_CARDS%}", cardsHtml);
+
+    // console.log(output);
+    res.end(output);
+
+    // Product page
+  } else if (pathName === "/product") {
+    res.writeHead(200, { "Content-type": "text/html" });
+    res.end(tempProduct);
+
+    // API
   } else if (pathName === "/api") {
     res.writeHead(200, { "Content-type": "application/json" });
     res.end(data);
+
+    // Not found
   } else {
     res.writeHead(404, {
       "Content-type": "text/html",
