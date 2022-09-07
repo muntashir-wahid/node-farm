@@ -16,6 +16,9 @@ const replaceTemplate = (temp, product) => {
   output = output.replace(/{%QUANTITY%}/g, product.quantity);
   output = output.replace(/{%PRICE%}/g, product.price);
   output = output.replace(/{%ID%}/g, product.id);
+  output = output.replace(/{%FROM%}/g, product.from);
+  output = output.replace(/{%NUTRIENTS%}/g, product.nutrients);
+  output = output.replace(/{%DESCRIPTION%}/g, product.description);
 
   if (!product.organic) {
     output = output.replace(/{%NOT_ORGANIC%}/g, "not-organic");
@@ -51,8 +54,7 @@ Server
 ////////////////////////////////////////
 
 const server = http.createServer((req, res) => {
-  const pathName = req.url;
-  // console.log(pathName);
+  const { query, pathname: pathName } = url.parse(req.url, true);
 
   // Overview page
   if (pathName === "/" || pathName === "/overview") {
@@ -63,13 +65,16 @@ const server = http.createServer((req, res) => {
       .join("");
     const output = tempOverview.replace("{%PRODUCT_CARDS%}", cardsHtml);
 
-    // console.log(output);
     res.end(output);
 
     // Product page
   } else if (pathName === "/product") {
+    const product = dataObj[query.id];
     res.writeHead(200, { "Content-type": "text/html" });
-    res.end(tempProduct);
+
+    const output = replaceTemplate(tempProduct, product);
+
+    res.end(output);
 
     // API
   } else if (pathName === "/api") {
@@ -86,6 +91,6 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(8000, "127.0.0.1", () => {
-  console.log("Listening to requests on port 8000");
+server.listen(80, "127.0.0.1", () => {
+  console.log("Listening to requests on port 80");
 });
